@@ -65,7 +65,7 @@ namespace MyList.Controllers
         private class SuccessPacket
         {
             public string Token { get; set; }
-            public ApplicationUser User { get; set; }
+            public string Username { get; set; }
         }
 
         [HttpPost("register")]
@@ -98,7 +98,7 @@ namespace MyList.Controllers
                 await context.SaveChangesAsync();
 
                 var registeredUser = context.Users.Single(m => m.Username == userToRegister.Username);
-                return Ok(new SuccessPacket() { User = new ApplicationUser() { Username = registeredUser.Username, ID = registeredUser.ID }, Token = BuildToken(registeredUser) });
+                return Ok(new SuccessPacket() { Username = registeredUser.Username, Token = BuildToken(registeredUser) });
             }
             else
             {
@@ -117,7 +117,7 @@ namespace MyList.Controllers
 
                 if (SecurePasswordHasher.Verify(vm.Password, userInDb.PasswordHash))
                 {
-                    return Ok(new SuccessPacket() { User = new ApplicationUser() { Username = userInDb.Username, ID = userInDb.ID }, Token = BuildToken(userInDb) });
+                    return Ok(new SuccessPacket() { Username = userInDb.Username, Token = BuildToken(userInDb) });
                 }
                 else
                 {
@@ -169,7 +169,7 @@ namespace MyList.Controllers
             }
         }
 
-        [HttpPost("delete")]
+        [HttpDelete("delete")]
         [Authorize]
         public async Task<ActionResult> DeleteAccount()
         {
@@ -210,7 +210,7 @@ namespace MyList.Controllers
                 var token = new JwtSecurityToken(config["Jwt:Issuer"],
                   config["Jwt:Issuer"],
                   claims: claims,
-                  expires: DateTime.Now.AddMinutes(2),
+                  expires: DateTime.Now.AddMinutes(1),
                   signingCredentials: creds);
 
                 return Ok(new JwtSecurityTokenHandler().WriteToken(token));

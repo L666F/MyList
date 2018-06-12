@@ -15,5 +15,10 @@ namespace MyList.Models.Data
 
         //DbSets
         public DbSet<ApplicationUser> Users { get; set; }
+        public DbSet<Bug> BugReports { get; set; }
+        public DbSet<List> Lists { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<ListProduct> ListProducts { get; set; }
+        public DbSet<UserList> UserLists { get; set; }
     }
 }

@@ -11,9 +11,10 @@ using System;
 namespace MyList.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20180611170238_AddedBugReports")]
+    partial class AddedBugReports
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -58,67 +59,6 @@ namespace MyList.Migrations
                     b.HasKey("ID");
 
                     b.ToTable("BugReports");
-                });
-
-            modelBuilder.Entity("MyList.Models.List", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<string>("Name")
-                        .IsRequired();
-
-                    b.Property<int>("UserID");
-
-                    b.HasKey("ID");
-
-                    b.ToTable("Lists");
-                });
-
-            modelBuilder.Entity("MyList.Models.ListProduct", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<int>("ListID");
-
-                    b.Property<string>("Note")
-                        .IsRequired();
-
-                    b.Property<int>("ProductID");
-
-                    b.HasKey("ID");
-
-                    b.ToTable("ListProducts");
-                });
-
-            modelBuilder.Entity("MyList.Models.Product", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<int>("Category");
-
-                    b.Property<string>("Name")
-                        .IsRequired();
-
-                    b.HasKey("ID");
-
-                    b.ToTable("Products");
-                });
-
-            modelBuilder.Entity("MyList.Models.UserList", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<int>("ListID");
-
-                    b.Property<int>("UserID");
-
-                    b.HasKey("ID");
-
-                    b.ToTable("UserLists");
                 });
 #pragma warning restore 612, 618
         }
