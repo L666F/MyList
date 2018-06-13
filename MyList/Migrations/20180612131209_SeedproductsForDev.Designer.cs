@@ -11,9 +11,10 @@ using System;
 namespace MyList.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20180612131209_SeedproductsForDev")]
+    partial class SeedproductsForDev
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -82,7 +83,8 @@ namespace MyList.Migrations
 
                     b.Property<int>("ListID");
 
-                    b.Property<string>("Note");
+                    b.Property<string>("Note")
+                        .IsRequired();
 
                     b.Property<int>("ProductID");
 

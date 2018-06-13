@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -17,11 +18,20 @@ namespace MyList.Controllers
     {
         private readonly ApplicationDbContext context;
 
+        private class ProductVMLocal
+        {
+            public int ID { get; set; }
+            public int ProductID { get; set; }
+            public string Name { get; set; }
+            public int Category { get; set; }
+            public string Note { get; set; }
+        }
+
         private class ListAndProducts
         {
             public int ID { get; set; }
             public string Name { get; set; }
-            public List<Product> Products { get; set; }
+            public List<ProductVMLocal> Products { get; set; }
         }
 
         public ListController(ApplicationDbContext context)
@@ -46,13 +56,15 @@ namespace MyList.Controllers
 
             var listproducts = context.ListProducts.Where(m => m.ListID == list.ID);
             var allProducts = context.Products.ToList();
-            var products = new List<Product>();
+            var products = new List<ProductVMLocal>();
 
             foreach(ListProduct el in listproducts)
             {
                 var p = allProducts.SingleOrDefault(m => m.ID == el.ProductID);
                 if (p != null)
-                    products.Add(p);
+                {
+                    products.Add(new ProductVMLocal() { ID = el.ID, Name = p.Name, Category = p.Category, Note = el.Note, ProductID = p.ID });
+                }
             }
             
 
@@ -84,7 +96,7 @@ namespace MyList.Controllers
             }
             else
             {
-                return BadRequest(ModelState.FirstOrDefault().Value.Errors.FirstOrDefault().ErrorMessage);
+                return BadRequest(ModelState);
             }
         }
 
@@ -133,7 +145,7 @@ namespace MyList.Controllers
             }
             else
             {
-                return BadRequest(ModelState.FirstOrDefault().Value.Errors.FirstOrDefault().ErrorMessage);
+                return BadRequest(ModelState);
             }
         }
 
@@ -185,7 +197,7 @@ namespace MyList.Controllers
             }
             else
             {
-                return BadRequest(ModelState.FirstOrDefault().Value.Errors.FirstOrDefault().ErrorMessage);
+                return BadRequest(ModelState);
             }
         }
 
@@ -215,8 +227,137 @@ namespace MyList.Controllers
             }
             else
             {
-                return BadRequest(ModelState.FirstOrDefault().Value.Errors.FirstOrDefault().ErrorMessage);
+                return BadRequest(ModelState);
             }
+        }
+
+        public class InviteVMLocal
+        {
+            [Required]
+            public List<string> Users { get; set; }
+        }
+
+        [Authorize]
+        [HttpPost("invite/{id}")]
+        public async Task<ActionResult> InviteUsersToList(int id,[FromBody]InviteVMLocal vm)
+        {
+            var user = HttpContext.User;
+            if (!Int32.TryParse(user.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+
+            var listInDb = await context.Lists.FindAsync(id);
+            if (listInDb == null)
+                return NotFound();
+
+            if (context.UserLists.SingleOrDefault(m => m.UserID == ID && m.ListID == id) == null && ID != listInDb.UserID)
+                return Forbid();
+
+            if (ModelState.IsValid)
+            {
+                foreach(string username in vm.Users)
+                {
+                    var invited = context.Users.SingleOrDefault(m => m.Username == username);
+                    if (invited != null)
+                    {
+                        if (context.Invites.SingleOrDefault(m => m.InvitedID == invited.ID && m.InviterID == ID) == null)
+                        {
+                            var invite = new InviteUserList() { InvitedID = invited.ID, InviterID = ID, Date = DateTime.Now, ListID = id };
+                            await context.Invites.AddAsync(invite);
+                        }
+                    }
+                }
+                await context.SaveChangesAsync();
+                return Ok();
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
+
+        public class ResponseVM
+        {
+            [Required]
+            public int InviteID { get; set; }
+            [Required]
+            public bool Accepted { get; set; }
+        }
+
+        [Authorize]
+        [HttpPost("response")]
+        public async Task<ActionResult> ResponseToInvite([FromBody]ResponseVM vm)
+        {
+            var user = HttpContext.User;
+            if (!Int32.TryParse(user.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+
+            if (ModelState.IsValid)
+            {
+                var invite = await context.Invites.FindAsync(vm.InviteID);
+                if (invite == null)
+                    return NotFound();
+
+                if (invite.InvitedID != ID)
+                    return Forbid();
+
+                if (vm.Accepted)
+                {
+                    var userlist = new UserList() { ListID = invite.ListID, UserID = ID };
+                    await context.UserLists.AddAsync(userlist);
+                }
+                else
+                {
+                    context.Invites.Remove(invite);
+                }
+
+                await context.SaveChangesAsync();
+                
+                return Ok();
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
+
+        private class InvitesVMLocal
+        {
+            public List<InviteUserList> InvitesIN { get; set; }
+            public List<InviteUserList> InvitesOUT { get; set; }
+        }
+
+        [Authorize]
+        [HttpGet("invites")]
+        public ActionResult GetInvites()
+        {
+            var user = HttpContext.User;
+            if (!Int32.TryParse(user.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+
+            var IN = context.Invites.Where(m => m.InvitedID == ID).ToList();
+            var OUT = context.Invites.Where(m => m.InviterID == ID).ToList();
+            return Ok(new InvitesVMLocal() { InvitesIN = IN, InvitesOUT = OUT });
+
+        }
+
+        [Authorize]
+        [HttpDelete("invites/{id}")]
+        public ActionResult DeleteInvite(int id)
+        {
+            var user = HttpContext.User;
+            if (!Int32.TryParse(user.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+
+            var invite = context.Invites.Find(id);
+            if (invite == null)
+                return NotFound();
+
+            if (invite.InviterID != ID)
+                return Forbid();
+
+            context.Invites.Remove(invite);
+            context.SaveChangesAsync();
+            return Ok();
         }
     }
 }

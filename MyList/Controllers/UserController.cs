@@ -102,7 +102,7 @@ namespace MyList.Controllers
             }
             else
             {
-                return BadRequest(ModelState.First().Value.Errors.First().ErrorMessage);
+                return BadRequest(ModelState);
             }
         }
 
@@ -126,7 +126,7 @@ namespace MyList.Controllers
             }
             else
             {
-                return BadRequest(ModelState.First().Value.Errors.First().ErrorMessage);
+                return BadRequest(ModelState);
             }
         }
 
@@ -165,7 +165,7 @@ namespace MyList.Controllers
             }
             else
             {
-                return BadRequest(ModelState.First().Value.Errors.First().ErrorMessage);
+                return BadRequest(ModelState);
             }
         }
 
@@ -215,6 +215,36 @@ namespace MyList.Controllers
 
                 return Ok(new JwtSecurityTokenHandler().WriteToken(token));
             }
+        }
+
+        private class UserListToReturn
+        {
+            public List<UserToReturn> Users { get; set; }
+
+            public class UserToReturn
+            {
+                public string Username { get; set; }
+            }
+        }
+
+        [HttpGet("get")]
+        [Authorize]
+        public ActionResult GetUsers()
+        {
+            var user = HttpContext.User;
+            int ID = 0;
+            if (!Int32.TryParse(user.Claims.FirstOrDefault(c => c.Type == "ID").Value, out ID))
+                return Forbid();
+
+            var users = context.Users.Where(m => m.ID != ID);
+            var usersToReturn = new List<UserListToReturn.UserToReturn>();
+
+            foreach(ApplicationUser u in users)
+            {
+                usersToReturn.Add(new UserListToReturn.UserToReturn() { Username = u.Username });
+            }
+
+            return Ok(usersToReturn);
         }
     }
 }

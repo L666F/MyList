@@ -20,5 +20,6 @@ namespace MyList.Models.Data
         public DbSet<Product> Products { get; set; }
         public DbSet<ListProduct> ListProducts { get; set; }
         public DbSet<UserList> UserLists { get; set; }
+        public DbSet<InviteUserList> Invites { get; set; }
     }
 }

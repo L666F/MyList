@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace MyList.Models
 {
-    public class ListProduct
+    public class InviteUserList
     {
-        [Key]
         public int ID { get; set; }
-        [Required]
         public int ListID { get; set; }
-        [Required]
-        public int ProductID { get; set; }
-        public string Note { get; set; }
+        public int InviterID { get; set; }
+        public int InvitedID { get; set; }
+        public DateTime Date { get; set; }
     }
 }

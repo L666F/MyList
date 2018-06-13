@@ -17,6 +17,13 @@ namespace MyList.Controllers
     {
         private readonly ApplicationDbContext context;
 
+        private class ReportVMLocal
+        {
+            public string Title { get; set; }
+            public string Text { get; set; }
+            public DateTime Date { get; set; }
+        }
+
         public FeedbackController(ApplicationDbContext context)
         {
             this.context = context;
@@ -42,11 +49,11 @@ namespace MyList.Controllers
 
                 await context.BugReports.AddAsync(bug);
                 await context.SaveChangesAsync();
-                return Ok(bug);
+                return Ok(new ReportVMLocal() { Title = vm.Title, Text = vm.Text, Date = bug.Date });
             }
             else
             {
-                return BadRequest(ModelState.FirstOrDefault().Value.Errors.FirstOrDefault().ErrorMessage);
+                return BadRequest(ModelState);
             }
         }
     }
