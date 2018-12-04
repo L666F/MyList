@@ -66,6 +66,7 @@ namespace MyList.Controllers
         {
             public string Token { get; set; }
             public string Username { get; set; }
+            public int ID { get; set; }
         }
 
         [HttpPost("register")]
@@ -98,7 +99,7 @@ namespace MyList.Controllers
                 await context.SaveChangesAsync();
 
                 var registeredUser = context.Users.Single(m => m.Username == userToRegister.Username);
-                return Ok(new SuccessPacket() { Username = registeredUser.Username, Token = BuildToken(registeredUser) });
+                return Ok(new SuccessPacket() { Username = registeredUser.Username, ID = registeredUser.ID, Token = BuildToken(registeredUser) });
             }
             else
             {
@@ -117,7 +118,7 @@ namespace MyList.Controllers
 
                 if (SecurePasswordHasher.Verify(vm.Password, userInDb.PasswordHash))
                 {
-                    return Ok(new SuccessPacket() { Username = userInDb.Username, Token = BuildToken(userInDb) });
+                    return Ok(new SuccessPacket() { Username = userInDb.Username, ID = userInDb.ID, Token = BuildToken(userInDb) });
                 }
                 else
                 {
@@ -188,6 +189,8 @@ namespace MyList.Controllers
                 if(userInDb.FullName==user.Claims.FirstOrDefault(c => c.Type == "FullName").Value)
                 {
                     //DELETE USER
+                    context.Invites.RemoveRange(context.Invites.Where(m => m.InviterID == ID || m.InvitedID == ID));
+                    context.UserLists.RemoveRange(context.UserLists.Where(m => m.UserID == ID));
                     context.Users.Remove(userInDb);
                     await context.SaveChangesAsync();
                     return Ok();
@@ -245,6 +248,41 @@ namespace MyList.Controllers
             }
 
             return Ok(usersToReturn);
+        }
+
+        private class UserToReturnSingle
+        {
+            public string Username { get; set; }
+            public string FullName { get; set; }
+        }
+
+        [HttpGet("get/{id}")]
+        [Authorize]
+        public async Task<ActionResult> GetUser(int? id)
+        {
+            var user = HttpContext.User;
+            int ID = 0;
+            if (!Int32.TryParse(user.Claims.FirstOrDefault(c => c.Type == "ID").Value, out ID))
+                return Forbid();
+
+            if (id != null)
+            {
+                var userInDb = await context.Users.FindAsync(id);
+                if (userInDb == null)
+                    return NotFound();
+
+                if (userInDb.ID == ID)
+                    return Ok(new UserToReturnSingle() { Username = userInDb.Username, FullName = userInDb.FullName });
+                else
+                    return Ok(new UserListToReturn.UserToReturn() { Username = userInDb.Username });
+            }
+            
+            var u = await context.Users.FindAsync(ID);
+            if (u == null)
+                return NotFound();
+
+            return Ok(new UserToReturnSingle() { Username = u.Username, FullName = u.FullName });
+
         }
     }
 }

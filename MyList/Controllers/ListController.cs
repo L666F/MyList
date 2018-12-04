@@ -71,9 +71,57 @@ namespace MyList.Controllers
             return Ok(new ListAndProducts() { ID = list.ID, Name = list.Name, Products = products });
         }
 
+        [HttpGet("products")]
+        [Authorize]
+        public ActionResult GetProducts()
+        {
+            var user = HttpContext.User;
+            if (!Int32.TryParse(user.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+
+            return Ok(context.Products.ToList());
+        }
+
+        [HttpGet("getall")]
+        [Authorize]
+        public ActionResult GetAllLists()
+        {
+            var user = HttpContext.User;
+            if (!Int32.TryParse(user.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+
+            var lists = new List<ListAndProducts>();
+            var currentUsersLists = context.Lists.Where(m => m.UserID == ID).ToList();
+            foreach(UserList ul in context.UserLists)
+            {
+                if (ul.UserID == ID && !currentUsersLists.Contains(context.Lists.Find(ul.ListID)))
+                    currentUsersLists.Add(context.Lists.Find(ul.ListID));
+            }
+            foreach(MyList.Models.List l in currentUsersLists)
+            {
+                var listproducts = context.ListProducts.Where(m => m.ListID == l.ID);
+                var allProducts = context.Products.ToList();
+                var products = new List<ProductVMLocal>();
+
+                foreach (ListProduct el in listproducts)
+                {
+                    var p = allProducts.SingleOrDefault(m => m.ID == el.ProductID);
+                    if (p != null)
+                    {
+                        products.Add(new ProductVMLocal() { ID = el.ID, Name = p.Name, Category = p.Category, Note = el.Note, ProductID = p.ID });
+                    }
+                }
+
+                var listToAdd = new ListAndProducts() { ID = l.ID, Name = l.Name, Products = products };
+                lists.Add(listToAdd);
+            }
+            return Ok(lists);
+
+        }
+
         [HttpPost("new")]
         [Authorize]
-        public ActionResult NewList([FromBody]ListVM vm)
+        public async Task<ActionResult> NewList([FromBody]ListVM vm)
         {
             var user = HttpContext.User;
             if (!Int32.TryParse(user.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
@@ -91,7 +139,7 @@ namespace MyList.Controllers
                 };
 
                 context.Lists.Add(list);
-                context.SaveChangesAsync();
+                await context.SaveChangesAsync();
                 return Ok(vm);
             }
             else
@@ -122,7 +170,7 @@ namespace MyList.Controllers
             return Ok();
         }
 
-        [Authorize]
+        /*[Authorize]
         [HttpPost("rename/{id}")]
         public async Task<ActionResult> RenameList(int id, [FromBody]ListVM vm)
         {
@@ -147,7 +195,7 @@ namespace MyList.Controllers
             {
                 return BadRequest(ModelState);
             }
-        }
+        }*/
 
         [HttpPost("empty/{id}")]
         [Authorize]
@@ -202,7 +250,7 @@ namespace MyList.Controllers
         }
 
         [Authorize]
-        [HttpDelete("remove/{id}")]
+        [HttpPost("remove/{id}")]
         public async Task<ActionResult> RemoveProducts(int id, [FromBody]RemoveProductVM vm)
         {
             var user = HttpContext.User;
@@ -220,7 +268,9 @@ namespace MyList.Controllers
             {
                 foreach(int listProductId in vm.IDs)
                 {
-                    context.ListProducts.Remove(context.ListProducts.Find(listProductId));
+                    var el = context.ListProducts.Find(listProductId);
+                    if (el!=null)
+                        context.ListProducts.Remove(el);
                 }
                 await context.SaveChangesAsync();
                 return Ok();

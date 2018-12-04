@@ -14,6 +14,5 @@ namespace MyList.Models.ViewModels
         [MinLength(8, ErrorMessage = "The password has to contain at least 8 characters.")]
         [MaxLength(50, ErrorMessage = "The password should not exceed 50 characters in length.")]
         public string NewPassword { get; set; }
-        public string Token { get; set; }
     }
 }
