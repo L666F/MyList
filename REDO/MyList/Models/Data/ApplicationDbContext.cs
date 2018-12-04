@@ -11,5 +11,6 @@ namespace MyList.Models.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
         //TABLES
+        public DbSet<ApplicationUser> Users { get; set; }
     }
 }
