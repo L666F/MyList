@@ -32,17 +32,6 @@ namespace MyList.Controllers
             this.config = config;
         }
 
-        class ValidationObject
-        {
-            public List<FieldValidation> Fields { get; set; }
-
-            public class FieldValidation
-            {
-                public string Field { get; set; }
-                public List<string> ErrorMessages { get; set; }
-            }
-        }
-
         [HttpPost("[action]")]
         public ActionResult Register([FromBody]RegisterVM vm)
         {
@@ -456,7 +445,7 @@ namespace MyList.Controllers
                     From = new MailAddress(config["Email:Address"])
                 };
                 mailMessage.To.Add(user.Email);
-                mailMessage.Body = "Dear " + user.LastName + " " + user.FirstName + ",<br>As you requested, here is the code to enter on the MyList website to reset your password.<br><br>" + passwordReset.RandomString + "<br><br><br>Please, ignore and delete this email if you were not the one trying to reset your password on MyList.<br>Thank you,<br>the MyList Team.";
+                mailMessage.Body = "Dear " + user.LastName + " " + user.FirstName + ",<br>As you requested, here is the code to enter on the MyList website to reset your password.<br>The code will expire in 30 minutes.<br><br>" + passwordReset.RandomString + "<br><br><br>Please, ignore and delete this email if you were not the one trying to reset your password on MyList.<br>Thank you,<br>the MyList Team.";
                 mailMessage.Subject = "MyList Password Reset";
                 client.Send(mailMessage);
 
@@ -490,7 +479,9 @@ namespace MyList.Controllers
             var passwordReset = context.PasswordResets.SingleOrDefault(m => m.UserID == user.ID);
             if (passwordReset == null)
                 return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Code", ErrorMessages = new List<string>() { "The code you entered doesn't match." } } } });
-            if(passwordReset.RandomString == code)
+            if(passwordReset.Sent.AddMinutes(30) < DateTime.Now)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Code", ErrorMessages = new List<string>() { "The code you entered expired." } } } });
+            if (passwordReset.RandomString == code)
             {
                 //Send mail with temporary password
                 try

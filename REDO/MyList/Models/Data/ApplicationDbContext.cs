@@ -14,5 +14,7 @@ namespace MyList.Models.Data
         public DbSet<ApplicationUser> Users { get; set; }
         public DbSet<EmailVerification> EmailVerifications { get; set; }
         public DbSet<PasswordReset> PasswordResets { get; set; }
+        public DbSet<ListClass> Lists { get; set; }
+        public DbSet<ListItem> ListItems { get; set; }
     }
 }
