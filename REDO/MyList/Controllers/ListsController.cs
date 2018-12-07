@@ -263,5 +263,142 @@ namespace MyList.Controllers
 
             return Ok();
         }
+
+
+        [Authorize]
+        [HttpPost("[action]")]
+        public ActionResult ShareWithEmail([FromBody]ShareWithEmailVM vm)
+        {
+            //Auth
+            var u = HttpContext.User;
+            if (!int.TryParse(u.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+            var user = context.Users.Find(ID);
+            if (user == null)
+                return Forbid();
+
+            //Validation
+            //ListID
+            if (vm.ListID == null)
+                return BadRequest();
+            var list = context.Lists.SingleOrDefault(m => m.ID == vm.ListID);
+            if (list == null)
+                return NotFound();
+            if (list.UserID != user.ID)
+                return Forbid();
+            //Email
+            if(vm.Email == null)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Email", ErrorMessages = new List<string>() { "This field is required." } } } });
+            var userToShareWith = context.Users.SingleOrDefault(m => m.Email == vm.Email);
+            if (userToShareWith == null)
+                return NotFound();
+            if(userToShareWith == user)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Email", ErrorMessages = new List<string>() { "Please, enter another user's email." } } } });
+            if (context.UserLists.SingleOrDefault(m => m.ListID == list.ID && m.UserID == userToShareWith.ID) != null)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Email", ErrorMessages = new List<string>() { "You already shared this list with this user." } } } });
+
+            //Share
+            var userlist = new UserList()
+            {
+                ListID = list.ID,
+                UserID = userToShareWith.ID,
+                SharedDateTime = DateTime.Now
+            };
+
+            context.UserLists.Add(userlist);
+            context.SaveChanges();
+
+            return Ok();
+        }
+
+
+        [Authorize]
+        [HttpPost("[action]")]
+        public ActionResult UnshareWithEmail([FromBody]ShareWithEmailVM vm)
+        {
+            //Auth
+            var u = HttpContext.User;
+            if (!int.TryParse(u.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+            var user = context.Users.Find(ID);
+            if (user == null)
+                return Forbid();
+
+            //Validation
+            //ListID
+            if (vm.ListID == null)
+                return BadRequest();
+            var list = context.Lists.SingleOrDefault(m => m.ID == vm.ListID);
+            if (list == null)
+                return NotFound();
+            if (list.UserID != user.ID)
+                return Forbid();
+            //Email
+            if (vm.Email == null)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Email", ErrorMessages = new List<string>() { "This field is required." } } } });
+            var userToShareWith = context.Users.SingleOrDefault(m => m.Email == vm.Email);
+            if (userToShareWith == null)
+                return NotFound();
+            if (userToShareWith == user)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Email", ErrorMessages = new List<string>() { "Please, enter another user's email." } } } });
+            var userlist = context.UserLists.SingleOrDefault(m => m.ListID == list.ID && m.UserID == userToShareWith.ID);
+            if (userlist == null)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Email", ErrorMessages = new List<string>() { "You are not sharing this list with this user." } } } });
+
+            //Unshare
+            context.UserLists.Remove(userlist);
+            context.SaveChanges();
+
+            return Ok();
+        }
+
+
+        [Authorize]
+        [HttpPost("[action]")]
+        public ActionResult GiveOwnership([FromBody]ShareWithEmailVM vm)
+        {
+            //Auth
+            var u = HttpContext.User;
+            if (!int.TryParse(u.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+            var user = context.Users.Find(ID);
+            if (user == null)
+                return Forbid();
+
+            //Validation
+            //ListID
+            if (vm.ListID == null)
+                return BadRequest();
+            var list = context.Lists.SingleOrDefault(m => m.ID == vm.ListID);
+            if (list == null)
+                return NotFound();
+            if (list.UserID != user.ID)
+                return Forbid();
+            //Email
+            if (vm.Email == null)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Email", ErrorMessages = new List<string>() { "This field is required." } } } });
+            var userToShareWith = context.Users.SingleOrDefault(m => m.Email == vm.Email);
+            if (userToShareWith == null)
+                return NotFound();
+            if (userToShareWith == user)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Email", ErrorMessages = new List<string>() { "Please, enter another user's email." } } } });
+            var userlist = context.UserLists.SingleOrDefault(m => m.ListID == list.ID && m.UserID == userToShareWith.ID);
+            if (userlist == null)
+                return BadRequest(new ValidationObject() { Fields = new List<ValidationObject.FieldValidation>() { new ValidationObject.FieldValidation() { Field = "Email", ErrorMessages = new List<string>() { "Before giving this user the ownership of this list, you have to be sharing the list with this user." } } } });
+
+            //Give ownership
+            list.UserID = userToShareWith.ID;
+            var OwnerUserList = new UserList()
+            {
+                ListID = list.ID,
+                UserID = user.ID,
+                SharedDateTime = userlist.SharedDateTime
+            };
+            context.UserLists.Remove(userlist);
+            context.UserLists.Add(OwnerUserList);
+            context.SaveChanges();
+
+            return Ok();
+        }
     }
 }

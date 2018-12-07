@@ -16,5 +16,6 @@ namespace MyList.Models.Data
         public DbSet<PasswordReset> PasswordResets { get; set; }
         public DbSet<ListClass> Lists { get; set; }
         public DbSet<ListItem> ListItems { get; set; }
+        public DbSet<UserList> UserLists { get; set; }
     }
 }
