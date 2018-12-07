@@ -46,6 +46,71 @@ namespace MyList.Controllers
         }
 
         [Authorize]
+        [HttpGet("[action]")]
+        public ActionResult GetSharedLists()
+        {
+            //Auth
+            var u = HttpContext.User;
+            if (!int.TryParse(u.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+            var user = context.Users.Find(ID);
+            if (user == null)
+                return Forbid();
+
+            //Search for shared lists for current user
+            var userlists = context.UserLists.Where(m => m.UserID == user.ID);
+            var lists = new List<ListClass>();
+
+            foreach(UserList ul in userlists)
+            {
+                var list = context.Lists.SingleOrDefault(m => m.ID == ul.ListID);
+                if (list == null)
+                {
+                    context.UserLists.Remove(ul);
+                    context.SaveChanges();
+                }
+                else
+                    lists.Add(list);
+            }
+
+            return Ok(lists);
+        }
+
+        [Authorize]
+        [HttpGet("[action]")]
+        public ActionResult GetAllLists()
+        {
+            //Auth
+            var u = HttpContext.User;
+            if (!int.TryParse(u.Claims.FirstOrDefault(c => c.Type == "ID").Value, out int ID))
+                return Forbid();
+            var user = context.Users.Find(ID);
+            if (user == null)
+                return Forbid();
+
+            //Search for shared lists for current user
+            var userlists = context.UserLists.Where(m => m.UserID == user.ID);
+            var lists = new List<ListClass>();
+
+            foreach (UserList ul in userlists)
+            {
+                var list = context.Lists.SingleOrDefault(m => m.ID == ul.ListID);
+                if (list == null)
+                {
+                    context.UserLists.Remove(ul);
+                    context.SaveChanges();
+                }
+                else
+                    lists.Add(list);
+            }
+
+            //Search for user's lists
+            lists.AddRange(context.Lists.Where(m => m.UserID == user.ID));
+
+            return Ok(lists);
+        }
+
+        [Authorize]
         [HttpPost("[action]")]
         public ActionResult NewList([FromBody]NewListVM vm)
         {
@@ -98,6 +163,7 @@ namespace MyList.Controllers
 
             //Delete list
             context.ListItems.RemoveRange(context.ListItems.Where(m => m.ListID == list.ID));
+            context.UserLists.RemoveRange(context.UserLists.Where(m => m.ListID == list.ID));
             context.Lists.Remove(list);
             context.SaveChanges();
 
